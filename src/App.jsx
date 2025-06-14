@@ -8,8 +8,10 @@ import {Auth} from '@supabase/auth-ui-react'
 import { ThemeSupa } from '@supabase/auth-ui-shared'
 
 import GoalForm from './components/GoalForm'
- 
+import GoalList from './components/GoalList'
 
+ 
+// app jsx should hold the global states for this part of the app
 function App() {
 
 
@@ -153,24 +155,14 @@ function App() {
         setUnit={setUnit}
         editingGoalId={editingGoalId}
       />
+      <GoalList
+        handleDelete={handleDelete}
+        handleEdit={handleEdit}
+        message={message}
+        goals={goals}
+        session={session}
+        />
       
-      <p>{message}</p>
-      <h2>Saved Goals:</h2>
-
-      {goals.map(goal => (
-      <div key={goal.id}>
-        <h3>{goal.title}</h3>
-          <p>{goal.target_value} {goal.unit}</p>
-          <button onClick={() => handleDelete(goal.id)}>Delete</button>
-          <button onClick={() => handleEdit(goal)}>edit</button>
-      </div>
-))}
-      <div>
-        <h4>User</h4>
-        <h5>{session.user.email}</h5>
-
-
-      </div>
       </div> 
     ) 
 }

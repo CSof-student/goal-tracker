@@ -1,6 +1,6 @@
 import React from "react";
 
-
+//manages the creation of goals form
 function GoalForm({
     handleSubmit,
     title,
