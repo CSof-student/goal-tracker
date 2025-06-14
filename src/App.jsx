@@ -6,6 +6,8 @@ import { supabase } from './supabaseClient'
 
 import {Auth} from '@supabase/auth-ui-react'
 import { ThemeSupa } from '@supabase/auth-ui-shared'
+
+import GoalForm from './components/GoalForm'
  
 
 function App() {
@@ -140,29 +142,18 @@ function App() {
 
     //what the page displays
     return (
-
-
-      <div style = {{padding: 20}}>
-
-        <h1>Goal Tracker</h1>
-        <form onSubmit={handleSubmit}> 
-          <div>
-            <label>Title:</label>
-            <input value={title} onChange={e => setTitle(e.target.value)}/>
-          </div>
-          <div>
-            <label>Unit:</label>
-            <input value={unit} onChange={e => setUnit(e.target.value)}/>
-          </div>
-          <div>
-            <label>Target Value</label>
-            <input value={targetValue} onChange={e=>setTargetValue(e.target.value)}/>
-          </div>
-          <button type='submit'>
-            {editingGoalId ? 'Save Changes' : 'Create Goal'}
-          </button>
-        </form>
-
+      <div> 
+      <GoalForm
+        handleSubmit={handleSubmit}
+        title={title}
+        setTitle={setTitle}
+        targetValue={targetValue}
+        setTargetValue={setTargetValue}
+        unit={unit}
+        setUnit={setUnit}
+        editingGoalId={editingGoalId}
+      />
+      
       <p>{message}</p>
       <h2>Saved Goals:</h2>
 
@@ -180,8 +171,7 @@ function App() {
 
 
       </div>
-
-      </div>
+      </div> 
     ) 
 }
 
