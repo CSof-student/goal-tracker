@@ -4,6 +4,10 @@ import viteLogo from '/vite.svg'
 import './App.css'
 import { supabase } from './supabaseClient'
 
+import {Auth} from '@supabase/auth-ui-react'
+import { ThemeSupa } from '@supabase/auth-ui-shared'
+ 
+
 function App() {
 
 
@@ -12,7 +16,25 @@ function App() {
   // the second argument tells it to rerun
   //basically when the page loads It grabs the data in the database
   useEffect(() => {
-    fetchGoals()
+
+    supabase.auth.getSession().then(({data:{session}}) => {
+      setSession(session)
+      if (session) {
+        fetchGoals()
+      }
+    })
+    const{data: listener} = supabase.auth.onAuthStateChange(
+      (event,session) => {setSession(session)
+        if (session) {
+          fetchGoals()
+        } else {
+          setGoals([])
+        }
+      })
+
+    return () => {
+      listener.subscription.unsubscribe()
+    }
   }, [])
 
 
@@ -25,10 +47,12 @@ function App() {
   const [message,setMessage] = useState('')
 
   const [goals,setGoals] = useState([])
-  const [editingGoalId, setEditingGoalID] = useState(null)
+  const [editingGoalId, setEditingGoalId] = useState(null)
+
+  const[session, setSession] = useState(null)
 
     async function fetchGoals(){
-      const {data,error} = await supabase.from('goals').select('*')
+      const {data,error} = await supabase.from('goals').select('*').eq('user_id',session.user.id)
       if(error){
         console.error(error)
         setMessage('Error creating goal')
@@ -72,7 +96,9 @@ function App() {
           {
             title: title,
             target_value: parseFloat(targetValue),
-            unit: unit
+            unit: unit,
+            user_id: session.user.id
+            
           }
         ], {returning: 'representation'})
         
@@ -101,13 +127,21 @@ function App() {
       setTitle(goal.title ?? '')
       setTargetValue(goal.target_value ?? '')
       setUnit(goal.unit ?? '')
-      setEditingGoalID(goal.id ?? '')
+      setEditingGoalId(goal.id ?? '')
     }
 
-
+  if (!session) {
+    return (
+      <Auth supabaseClient={supabase} 
+      appearance={{theme: ThemeSupa}}
+      providers={[]}/>
+    )
+  }
 
     //what the page displays
     return (
+
+
       <div style = {{padding: 20}}>
 
         <h1>Goal Tracker</h1>
@@ -137,9 +171,15 @@ function App() {
         <h3>{goal.title}</h3>
           <p>{goal.target_value} {goal.unit}</p>
           <button onClick={() => handleDelete(goal.id)}>Delete</button>
-          <button onClick={() => handleEdit(goal.id)}>edit</button>
+          <button onClick={() => handleEdit(goal)}>edit</button>
       </div>
 ))}
+      <div>
+        <h4>User</h4>
+        <h5>{session.user.email}</h5>
+
+
+      </div>
 
       </div>
     ) 
