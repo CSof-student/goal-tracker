@@ -1,5 +1,7 @@
 import React from "react";
 
+
+//handles the logic for showing individual goals on the list
 function GoalItem({
     goal, 
     handleDelete,

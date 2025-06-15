@@ -9,28 +9,35 @@ import { ThemeSupa } from '@supabase/auth-ui-shared'
 
 import GoalForm from './components/GoalForm'
 import GoalList from './components/GoalList'
+import UserInfo from './components/userInfo'
+import { updateGoal,deleteGoal, insertGoal, fetchGoals } from './services/goalService'
+import { getSession, onAuthStateChange,signOut } from './services/authServices'
+import { on } from 'ws'
 
- 
+import { Routes, Route, Link } from 'react-router'
+
+import Dashboard from './components/pages/Dashboard' 
+import Profile from './components/pages/Profile'
 // app jsx should hold the global states for this part of the app
 function App() {
-
 
   // useeffect allows you to run side effects ex: fetching data, in components
   //the function inside useeffect runs when the component renders
   // the second argument tells it to rerun
   //basically when the page loads It grabs the data in the database
   useEffect(() => {
+    getSession().then((currrentSession) => {
+      setSession(currrentSession)
+    
+    if (currrentSession){
+      fetchGoalsForUser()
+    }
+  })
 
-    supabase.auth.getSession().then(({data:{session}}) => {
-      setSession(session)
-      if (session) {
-        fetchGoals()
-      }
-    })
-    const{data: listener} = supabase.auth.onAuthStateChange(
-      (event,session) => {setSession(session)
+    const{data: listener} = onAuthStateChange(
+      (session) => {setSession(session)
         if (session) {
-          fetchGoals()
+          fetchGoalsForUser()
         } else {
           setGoals([])
         }
@@ -55,83 +62,85 @@ function App() {
 
   const[session, setSession] = useState(null)
 
-    async function fetchGoals(){
-      const {data,error} = await supabase.from('goals').select('*').eq('user_id',session.user.id)
-      if(error){
+  //handles fetching goals from the database when able too.
+  async function fetchGoalsForUser(){
+      if(!session) {
+        setGoals([])
+        return
+      }
+      try{
+        const data = await fetchGoals(session.user.id)
+        setGoals(data)
+      } catch (error) {
         console.error(error)
-        setMessage('Error creating goal')
-      } else {
-        console.log('Fetched goals:',data)
-        if (data) {
-          setGoals(data)
-        } else{
-          setGoals([])
-        }
+        setMessage('Error fetching goals')
       }
     }
+
   //inserts data to the tables when it gets submitted
     async function handleSubmit(e) {
       e.preventDefault()
       // if editting goal:
       if (editingGoalId) {
-        const {data,error} = await supabase
-        .from('goals')
-        .update(
-          {
+        try{
+          await updateGoal(editingGoalId,{
             title: title,
             target_value: parseFloat(targetValue),
             unit: unit
           })
-          .eq('id', editingGoalId)
-
-          if(error){
-            console.error(error)
-            setMessage('Error editing goal')
-          } else {
-            console.log(data)
-            setMessage('Goal edited successfully!')
-            setTitle('')
-            setTargetValue('')
-            setUnit('')
-            fetchGoals();
-          }
+          resetFormAndRefresh()
+        } catch (error){
+          console.error(error)
+          setMessage("error editing goal")
+        }
+          
       } else{
-        const {data,error} = await supabase.from('goals').insert([
-          {
+        //if not editing goal (then its inserting a new one)
+        try {
+          await insertGoal({
             title: title,
             target_value: parseFloat(targetValue),
             unit: unit,
             user_id: session.user.id
-            
-          }
-        ], {returning: 'representation'})
-        
-        if(error){
+  
+          })
+          resetFormAndRefresh()
+        } catch (error) {
           console.error(error)
-          setMessage('Error creating goal')
-        } else {
-          console.log(data)
-          setMessage('Goal created successfully!')
-          setTitle('')
-          setTargetValue('')
-          setUnit('')
-          fetchGoals();
+          setMessage("error making goal")
         }
+        
       }
       }
       
-
     //deletes data from the table
     async function handleDelete(goalID){
-      await supabase.from('goals').delete().eq('id',goalID)
-      fetchGoals()
+      await deleteGoal(goalID)
+      fetchGoalsForUser()
     }
 
+    //handles signout, not sure if its necesarry
+    async function handleSignOut(){
+      await signOut()
+    }
+
+    // puts existing values in the form to be editing and sets the goal being edited to the parameter
     async function handleEdit(goal) {
       setTitle(goal.title ?? '')
       setTargetValue(goal.target_value ?? '')
       setUnit(goal.unit ?? '')
       setEditingGoalId(goal.id ?? '')
+    }
+
+    //cleans the form after something is submitted in it
+    function resetFormAndRefresh() {
+      setMessage('Goal saved successfully!')
+      setTitle('')
+      setTargetValue('')
+      setUnit('')
+      setEditingGoalId(null)
+      fetchGoalsForUser()
+      
     }
 
   if (!session) {
@@ -144,8 +153,16 @@ function App() {
 
     //what the page displays
     return (
-      <div> 
-      <GoalForm
+
+      <div>
+
+      <nav>
+       <Link to="/">Dashboard</Link> | <Link to="/Profile">Profile</Link>
+      
+      </nav>
+      
+      <Routes>
+        <Route path="/" element={<Dashboard
         handleSubmit={handleSubmit}
         title={title}
         setTitle={setTitle}
@@ -154,18 +171,23 @@ function App() {
         unit={unit}
         setUnit={setUnit}
         editingGoalId={editingGoalId}
-      />
-      <GoalList
         handleDelete={handleDelete}
         handleEdit={handleEdit}
         message={message}
         goals={goals}
         session={session}
-        />
+        handleSignOut={handleSignOut}
+         />} />
+        <Route path="/Profile" element={<Profile />} />
+      </Routes>
+
+      </div>
       
-      </div> 
+
+
+
+      
     ) 
 }
-
 
 export default App

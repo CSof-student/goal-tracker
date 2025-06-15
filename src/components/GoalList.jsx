@@ -7,7 +7,7 @@ function GoalList({
     handleDelete,
     handleEdit,
     goals,
-    session
+
 }) {
     return(
     <div>
@@ -21,12 +21,7 @@ function GoalList({
         handleEdit={handleEdit}
         />
 ))}
-      <div>
-        <h4>User</h4>
-        <h5>{session.user.email}</h5>
-
-
-      </div>
+      
       </div>
     )
 }
